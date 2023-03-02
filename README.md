@@ -1,22 +1,22 @@
 # API
-| Method | Path                     | Description                     | Json                                                                      |
-| :----: | :----------------------- | :------------------------------ | :------------------------------------------------------------------------ |
-|  GET   | /ping                    | Проверка на работоспособность   |                                                                           |
-|  GET   | /v1/playlist             | Возвращает список плейлистов    |                                                                           |
-|  GET   | /v1/playlist/id          | Возвращает плейлист по id       |                                                                           |
-|  POST  | /v1/playlist/id/launch   | Запускает плейлист в обработку  |                                                                           |
-|  POST  | /v1/playlist/id/stop     | Останавливает плейлист          |                                                                           |
-|  POST  | /v1/playlist/id/play     | Включает воспроизведение        |                                                                           |
-|  POST  | /v1/playlist/id/pause    | Ставит воспроизведение на паузу |                                                                           |
-|  POST  | /v1/playlist/id/next     | Переключает на следующий трек   |                                                                           |
-|  POST  | /v1/playlist/id/prev     | Переключает на предыдущий трек  |                                                                           |
-|  POST  | /v1/playlist/id/song     | Добавляет треки в плейлист      | `[ { "name": string, "duration": number } ]`                              |
-| PATCH  | /v1/playlist/id/song/sid | Изменяет трек по sid            | `{ "name": string, "duration": number }`                                  |
-| DELETE | /v1/playlist/id/song/sid | Удаляет трек по sid             |                                                                           |
-|  POST  | /                        | Создает новый плейлист          | `{ "name": string, "songs": [ { "name": string, "duration": number } ] }` |
-| PATCH  | /id/name                 | Переименовывает плейлист по id  | `{ "name": string }`                                                      |
-| PATCH  | /id/time                 | Перематывает плейлист по id     | `{ "time": number }`                                                      |
-| DELETE | /id                      | Удаляет плейлист по id          |                                                                           |
+| Method | Path                       | Description                     | Json                                                                      |
+| :----: | :------------------------- | :------------------------------ | :------------------------------------------------------------------------ |
+|  GET   | `/ping`                    | Проверка на работоспособность   |                                                                           |
+|  GET   | `/v1/playlist`             | Возвращает список плейлистов    |                                                                           |
+|  POST  | `/v1/playlist`             | Создает новый плейлист          | `{ "name": string, "songs": [ { "name": string, "duration": number } ] }` |
+|  GET   | `/v1/playlist/id`          | Возвращает плейлист по id       |                                                                           |
+| DELETE | `/v1/playlist/id`          | Удаляет плейлист по id          |                                                                           |
+| PATCH  | `/v1/playlist/id/name`     | Переименовывает плейлист по id  | `{ "name": string }`                                                      |
+| PATCH  | `/v1/playlist/id/time`     | Перематывает плейлист по id     | `{ "time": number }`                                                      |
+|  POST  | `/v1/playlist/id/launch`   | Запускает плейлист в обработку  |                                                                           |
+|  POST  | `/v1/playlist/id/stop`     | Останавливает плейлист          |                                                                           |
+|  POST  | `/v1/playlist/id/play`     | Включает воспроизведение        |                                                                           |
+|  POST  | `/v1/playlist/id/pause`    | Ставит воспроизведение на паузу |                                                                           |
+|  POST  | `/v1/playlist/id/next`     | Переключает на следующий трек   |                                                                           |
+|  POST  | `/v1/playlist/id/prev`     | Переключает на предыдущий трек  |                                                                           |
+|  POST  | `/v1/playlist/id/song`     | Добавляет треки в плейлист      | `[ { "name": string, "duration": number } ]`                              |
+| PATCH  | `/v1/playlist/id/song/sid` | Изменяет трек по sid            | `{ "name": string, "duration": number }`                                  |
+| DELETE | `/v1/playlist/id/song/sid` | Удаляет трек по sid             |                                                                           |
 
 После создания плейлиста его надо запустить через `launch` запрос, иначе использовать `play/pause/next/prev` будет нельзя
 
