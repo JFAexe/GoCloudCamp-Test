@@ -515,7 +515,7 @@ func prevPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		if err = pl.Next(); err != nil {
+		if err = pl.Prev(); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
 			s.Errs <- err
