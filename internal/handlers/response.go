@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"gocloudcamp_test/internal/playlist"
 	"net/http"
+
+	"gocloudcamp_test/internal/playlist"
 
 	"github.com/go-chi/render"
 )
@@ -41,6 +42,7 @@ func ErrInternalError(err error) render.Renderer {
 type MsgResponse struct {
 	HTTPStatusCode int    `json:"-"`
 	MessageText    string `json:"message,omitempty"`
+	PlaylistId     uint   `json:"id,omitempty"`
 }
 
 func (e *MsgResponse) Render(w http.ResponseWriter, r *http.Request) error {

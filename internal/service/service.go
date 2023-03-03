@@ -126,8 +126,14 @@ func (s *Service) EditPlaylist(id uint, name string) error {
 }
 
 func (s *Service) DeletePlaylist(id uint) error {
-	_, err := s.GetPlaylist(id)
+	pl, err := s.GetPlaylist(id)
 	if err != nil {
+		s.Errs <- err
+
+		return err
+	}
+
+	if err := pl.Stop(); err != nil {
 		s.Errs <- err
 
 		return err

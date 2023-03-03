@@ -185,6 +185,7 @@ func newPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusCreated,
 			MessageText:    "playlist created",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -219,6 +220,7 @@ func deletePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request)
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "playlist deleted",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -278,6 +280,7 @@ func addSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusCreated,
 			MessageText:    "songs added",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -328,6 +331,7 @@ func editSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "song updated",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -370,6 +374,7 @@ func removeSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "song removed",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -407,6 +412,7 @@ func playPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "playlist is playing",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -444,6 +450,7 @@ func pausePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) 
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "playlist paused",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -481,6 +488,7 @@ func nextPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "playlist switched to next song",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -518,6 +526,7 @@ func prevPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "playlist switched to prev song",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -549,6 +558,7 @@ func launchPlaylist(ctx context.Context, s *service.Service) func(http.ResponseW
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "playlist is processing",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -580,6 +590,7 @@ func stopPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "playlist stopped",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -625,6 +636,7 @@ func namePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "playlist renamed",
+			PlaylistId:     id,
 		})
 	}
 }
@@ -668,6 +680,7 @@ func timePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
 			MessageText:    "playlist time set",
+			PlaylistId:     id,
 		})
 	}
 }
