@@ -15,9 +15,11 @@ func (db *Database) LoadPlaylists() ([]Playlist, error) {
 }
 
 func (db *Database) CreatePlaylist(pl *Playlist) error {
+	err := db.Create(&pl).Error
+
 	log.Printf("database | create playlist | id %d", pl.Id)
 
-	return db.Create(&pl).Error
+	return err
 }
 
 func (db *Database) UpdatePlaylist(pl *Playlist) error {
@@ -43,9 +45,11 @@ func (db *Database) LoadSongs() ([]Song, error) {
 }
 
 func (db *Database) CreateSong(sn *Song) error {
+	err := db.Create(&sn).Error
+
 	log.Printf("database | create song | id %d", sn.SongId)
 
-	return db.Create(&sn).Error
+	return err
 }
 
 func (db *Database) UpdateSong(sn *Song) error {

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"log"
 
 	"gorm.io/driver/postgres"
@@ -11,7 +12,7 @@ type Database struct {
 	*gorm.DB
 }
 
-func Connect(uri string) *Database {
+func Connect(ctx context.Context, uri string) *Database {
 	log.Print("database | connecting")
 
 	db, err := gorm.Open(postgres.Open(uri), &gorm.Config{})
@@ -23,5 +24,5 @@ func Connect(uri string) *Database {
 
 	log.Print("database | connected")
 
-	return &Database{db}
+	return &Database{db.WithContext(ctx)}
 }

@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -12,7 +14,7 @@ type Server struct {
 	http.Server
 }
 
-func New(ctx context.Context, handlers http.Handler, addr string) *Server {
+func New(handlers http.Handler, addr string) *Server {
 	server := &Server{}
 
 	server.Addr = addr
@@ -24,18 +26,20 @@ func New(ctx context.Context, handlers http.Handler, addr string) *Server {
 func (s *Server) Run() {
 	log.Printf("http | server starting | %s", s.Addr)
 
-	if err := s.ListenAndServe(); err != nil {
-		switch err {
-		case http.ErrServerClosed:
-			log.Print("http | shut down")
-		default:
-			log.Fatalf("http | %v", err)
-		}
+	if err := s.ListenAndServe(); err != http.ErrServerClosed {
+		log.Printf("http | %v", err)
+
+		return
 	}
+
+	log.Printf("http | shut down")
 }
 
-func (s *Server) GracefulShutdown(ctx context.Context, cancel context.CancelFunc, quit <-chan os.Signal) {
-	<-quit
+func (s *Server) GracefulShutdown(ctx context.Context, forceStop chan<- struct{}) {
+	chanQuit := make(chan os.Signal, 1)
+	signal.Notify(chanQuit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	<-chanQuit
 
 	log.Print("http | shutting down")
 
@@ -46,13 +50,13 @@ func (s *Server) GracefulShutdown(ctx context.Context, cancel context.CancelFunc
 		<-shutdownCtx.Done()
 
 		if shutdownCtx.Err() == context.DeadlineExceeded {
-			log.Fatal("http | force exit")
+			log.Print("http | force stop")
+
+			forceStop <- struct{}{}
 		}
 	}()
 
 	if err := s.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("http | %v", err)
+		log.Printf("http | %v", err)
 	}
-
-	cancel()
 }

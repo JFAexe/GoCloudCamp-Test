@@ -148,35 +148,23 @@ func newPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		var pl database.Playlist
 		pl.Name = data.Name
 
-		if err := s.DB.CreatePlaylist(&pl); err != nil {
+		if err := s.CreatePlaylist(&pl); err != nil {
 			render.Render(w, r, ErrInternalError(err))
+
+			s.ChanError <- err
 
 			return
 		}
 
 		id := pl.Id
 
-		if err := s.AddPlaylist(id, pl.Name); err != nil {
-			render.Render(w, r, ErrInternalError(err))
-
-			s.Errs <- s.DB.DeletePlaylist(id)
-
-			return
-		}
-
 		for _, song := range data.Songs {
 			song.PlaylistId = id
 
-			if err := s.DB.CreateSong(&song); err != nil {
+			if err := s.CreateSong(&song); err != nil {
 				render.Render(w, r, ErrInternalError(err))
 
-				return
-			}
-
-			if err := s.AddSong(id, song); err != nil {
-				render.Render(w, r, ErrInternalError(err))
-
-				s.Errs <- s.DB.DeleteSong(song.SongId)
+				s.ChanError <- err
 
 				return
 			}
@@ -199,23 +187,20 @@ func deletePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request)
 			return
 		}
 
-		pl, err := s.GetPlaylist(id)
+		_, err = s.GetPlaylist(id)
 		if err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
 			return
 		}
 
-		for _, song := range pl.GetSongsList() {
-			if err := s.DB.DeleteSong(song.Id); err != nil {
-				render.Render(w, r, ErrInternalError(err))
+		if err := s.DeletePlaylist(id); err != nil {
+			render.Render(w, r, ErrInternalError(err))
 
-				return
-			}
+			s.ChanError <- err
+
+			return
 		}
-
-		s.DeletePlaylist(id)
-		s.DB.DeletePlaylist(id)
 
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
@@ -262,16 +247,10 @@ func addSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		for _, song := range data {
 			song.PlaylistId = id
 
-			if err := s.DB.CreateSong(&song); err != nil {
+			if err := s.CreateSong(&song); err != nil {
 				render.Render(w, r, ErrInternalError(err))
 
-				return
-			}
-
-			if err := s.AddSong(id, song); err != nil {
-				render.Render(w, r, ErrInternalError(err))
-
-				s.Errs <- s.DB.DeleteSong(song.SongId)
+				s.ChanError <- err
 
 				return
 			}
@@ -306,13 +285,6 @@ func editSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		_, err = s.GetPlaylist(id)
-		if err != nil {
-			render.Render(w, r, ErrInternalError(err))
-
-			return
-		}
-
 		sid, err := parseId(r, "sid")
 		if err != nil {
 			render.Render(w, r, ErrInvalidRequest(err))
@@ -320,13 +292,13 @@ func editSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		if err := s.EditSong(id, sid, data); err != nil {
+		if err := s.EditSong(id, sid, &data); err != nil {
 			render.Render(w, r, ErrInternalError(err))
+
+			s.ChanError <- err
 
 			return
 		}
-
-		s.DB.UpdateSong(&data)
 
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
@@ -345,13 +317,6 @@ func removeSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		_, err = s.GetPlaylist(id)
-		if err != nil {
-			render.Render(w, r, ErrInternalError(err))
-
-			return
-		}
-
 		sid, err := parseId(r, "sid")
 		if err != nil {
 			render.Render(w, r, ErrInvalidRequest(err))
@@ -362,11 +327,7 @@ func removeSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err := s.DeleteSong(id, sid); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
-			return
-		}
-
-		if err := s.DB.DeleteSong(sid); err != nil {
-			render.Render(w, r, ErrInternalError(err))
+			s.ChanError <- err
 
 			return
 		}
@@ -404,7 +365,7 @@ func playPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.Play(); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
-			s.Errs <- err
+			s.ChanError <- err
 
 			return
 		}
@@ -442,7 +403,7 @@ func pausePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) 
 		if err = pl.Pause(); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
-			s.Errs <- err
+			s.ChanError <- err
 
 			return
 		}
@@ -480,7 +441,7 @@ func nextPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.Next(); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
-			s.Errs <- err
+			s.ChanError <- err
 
 			return
 		}
@@ -518,7 +479,7 @@ func prevPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.Prev(); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
-			s.Errs <- err
+			s.ChanError <- err
 
 			return
 		}
@@ -550,7 +511,7 @@ func launchPlaylist(ctx context.Context, s *service.Service) func(http.ResponseW
 		if err = s.LaunchPlaylist(ctx, id); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
-			s.Errs <- err
+			s.ChanError <- err
 
 			return
 		}
@@ -582,7 +543,7 @@ func stopPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.Stop(); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
-			s.Errs <- err
+			s.ChanError <- err
 
 			return
 		}
@@ -626,12 +587,10 @@ func namePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = s.EditPlaylist(id, data.Name); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
-			s.Errs <- err
+			s.ChanError <- err
 
 			return
 		}
-
-		s.DB.UpdatePlaylist(&database.Playlist{Id: id, Name: data.Name})
 
 		render.Render(w, r, &MsgResponse{
 			HTTPStatusCode: http.StatusOK,
@@ -672,7 +631,7 @@ func timePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.SetTime(data.Time); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
-			s.Errs <- err
+			s.ChanError <- err
 
 			return
 		}

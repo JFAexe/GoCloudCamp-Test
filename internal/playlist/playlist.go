@@ -67,21 +67,14 @@ func (pl *Playlist) Process(ctx context.Context) {
 	log.Printf("playlist | id %d | active", pl.Id)
 
 	for {
-		select {
-		case <-ctx.Done():
-			pl.playing = false
-			pl.processing = false
+		if err := ctx.Err(); err != nil {
+			log.Printf("playlist | id %d | %v", pl.Id, err)
 
-			log.Printf("playlist | id %d | inactive | context cancelled", pl.Id)
-
-			return
-		default:
+			break
 		}
 
 		if !pl.processing || pl.curr == nil {
-			pl.playing = false
-
-			log.Printf("playlist | id %d | inactive | finished", pl.Id)
+			log.Printf("playlist | id %d | finished", pl.Id)
 
 			break
 		}
@@ -93,15 +86,8 @@ func (pl *Playlist) Process(ctx context.Context) {
 		}
 
 		for pl.time <= pl.curr.Duration {
-			select {
-			case <-ctx.Done():
-				pl.playing = false
-				pl.processing = false
-
-				log.Printf("playlist | id %d | inactive | context cancelled", pl.Id)
-
-				return
-			default:
+			if ctx.Err() != nil {
+				break
 			}
 
 			switchRequested := pl.processPlay()
@@ -121,6 +107,11 @@ func (pl *Playlist) Process(ctx context.Context) {
 			pl.time++
 		}
 	}
+
+	pl.playing = false
+	pl.processing = false
+
+	log.Printf("playlist | id %d | inactive", pl.Id)
 }
 
 func (pl *Playlist) processPlay() bool {
@@ -156,6 +147,7 @@ func (pl *Playlist) processPause() {
 		break
 	case <-pl.chanStop:
 		break
+	default:
 	}
 }
 
@@ -252,12 +244,12 @@ func (pl *Playlist) Stop() error {
 	return nil
 }
 
-func (pl *Playlist) AddSong(id uint, name string, duration uint) (*Song, error) {
+func (pl *Playlist) AddSong(id uint, name string, duration uint) error {
 	pl.Lock()
 	defer pl.Unlock()
 
 	if pl.findSong(id) != nil {
-		return nil, errors.New("can't add song with this id to playlist")
+		return errors.New("can't add song with this id to playlist")
 	}
 
 	song := &Song{
@@ -278,7 +270,7 @@ func (pl *Playlist) AddSong(id uint, name string, duration uint) (*Song, error) 
 
 	log.Printf("playlist | id %d | add song | id %d | duration %d", pl.Id, song.Id, song.Duration)
 
-	return song, nil
+	return nil
 }
 
 func (pl *Playlist) Remove(id uint) error {
