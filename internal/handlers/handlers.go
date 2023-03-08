@@ -21,7 +21,7 @@ var (
 	ErrNoSongsProvided = errors.New("no songs provided")
 )
 
-func Get(ctx context.Context, s *service.Service) http.Handler {
+func New(ctx context.Context, s *service.Service) http.Handler {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Logger)

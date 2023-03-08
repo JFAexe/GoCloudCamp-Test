@@ -14,7 +14,7 @@ type Server struct {
 	http.Server
 }
 
-func New(handlers http.Handler, addr string) *Server {
+func New(addr string, handlers http.Handler) *Server {
 	server := &Server{}
 
 	server.Addr = addr
