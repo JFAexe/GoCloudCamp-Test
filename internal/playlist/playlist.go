@@ -8,6 +8,23 @@ import (
 	"time"
 )
 
+var (
+	ErrNotProcessed      = errors.New("playlist is not being processed")
+	ErrAlreadyProcessing = errors.New("playlist is already processing")
+	ErrAlreadyStopped    = errors.New("playlist is already stopped")
+	ErrAlreadyPlaying    = errors.New("playlist is already playing")
+	ErrAlreadyPaused     = errors.New("playlist is already paused")
+	ErrSwitchLast        = errors.New("this is the last song")
+	ErrSwitchFirst       = errors.New("this is the first song")
+	ErrSongNotIn         = errors.New("song is not in playlist")
+	ErrSongIdTaken       = errors.New("song with this id is already in playlist")
+	ErrRemoveFromEmpty   = errors.New("playlist is empty")
+	ErrRemovePlaying     = errors.New("this song is playing")
+	ErrRemoveNotIn       = errors.New("this song is not in playlist")
+	ErrEditCurrent       = errors.New("this is current song")
+	ErrLargerTime        = errors.New("time is larger than current song duration")
+)
+
 type Status struct {
 	Id          uint
 	Name        string
@@ -61,10 +78,26 @@ func New(id uint, name string) *Playlist {
 	}
 }
 
+func (pl *Playlist) IsProcessing() bool {
+	return pl.processing
+}
+
+func (pl *Playlist) IsCurrent(id uint) bool {
+	if pl.curr == nil {
+		return false
+	}
+
+	return pl.IsProcessing() && pl.curr.Id == id
+}
+
 func (pl *Playlist) Process(ctx context.Context) {
 	pl.processing = true
 
 	log.Printf("playlist | id %d | active", pl.Id)
+
+	if pl.curr == nil {
+		pl.curr = pl.head
+	}
 
 	for {
 		if err := ctx.Err(); err != nil {
@@ -74,7 +107,7 @@ func (pl *Playlist) Process(ctx context.Context) {
 		}
 
 		if !pl.processing || pl.curr == nil {
-			log.Printf("playlist | id %d | finished", pl.Id)
+			log.Printf("playlist | id %d | stopped", pl.Id)
 
 			break
 		}
@@ -164,8 +197,12 @@ func (pl *Playlist) Play() error {
 	pl.RLock()
 	defer pl.RUnlock()
 
+	if !pl.processing {
+		return ErrNotProcessed
+	}
+
 	if pl.playing {
-		return errors.New("can't start playing playlist")
+		return ErrAlreadyPlaying
 	}
 
 	pl.chanPlay <- struct{}{}
@@ -181,8 +218,12 @@ func (pl *Playlist) Pause() error {
 	pl.RLock()
 	defer pl.RUnlock()
 
+	if !pl.processing {
+		return ErrNotProcessed
+	}
+
 	if !pl.playing {
-		return errors.New("can't stop paused playlist")
+		return ErrAlreadyPaused
 	}
 
 	pl.chanPaus <- struct{}{}
@@ -198,8 +239,12 @@ func (pl *Playlist) Next() error {
 	pl.RLock()
 	defer pl.RUnlock()
 
+	if !pl.processing {
+		return ErrNotProcessed
+	}
+
 	if pl.curr.next == nil {
-		return errors.New("can't switch to next, this is the last song")
+		return ErrSwitchLast
 	}
 
 	pl.switchNext()
@@ -213,8 +258,12 @@ func (pl *Playlist) Prev() error {
 	pl.RLock()
 	defer pl.RUnlock()
 
+	if !pl.processing {
+		return ErrNotProcessed
+	}
+
 	if pl.curr.prev == nil {
-		return errors.New("can't switch to previous, this is the first song")
+		return ErrSwitchFirst
 	}
 
 	pl.curr = pl.curr.prev
@@ -232,7 +281,7 @@ func (pl *Playlist) Stop() error {
 	defer pl.RUnlock()
 
 	if !pl.processing {
-		return errors.New("can't stop non processing playlist")
+		return ErrAlreadyStopped
 	}
 
 	pl.chanStop <- struct{}{}
@@ -249,7 +298,7 @@ func (pl *Playlist) AddSong(id uint, name string, duration uint) error {
 	defer pl.Unlock()
 
 	if pl.findSong(id) != nil {
-		return errors.New("can't add song with this id to playlist")
+		return ErrSongIdTaken
 	}
 
 	song := &Song{
@@ -278,11 +327,11 @@ func (pl *Playlist) Remove(id uint) error {
 	defer pl.Unlock()
 
 	if pl.head == nil {
-		return errors.New("can't remove song from an empty playlist")
+		return ErrRemoveFromEmpty
 	}
 
 	if pl.playing && pl.curr.Id == id {
-		return errors.New("can't remove playing song")
+		return ErrRemovePlaying
 	}
 
 	var song *Song
@@ -294,7 +343,7 @@ func (pl *Playlist) Remove(id uint) error {
 		song = pl.findSong(id)
 
 		if song == nil {
-			return errors.New("can't remove non existing song from playlist")
+			return ErrRemoveNotIn
 		}
 	}
 
@@ -331,7 +380,7 @@ func (pl *Playlist) SetTime(time uint) error {
 	defer pl.RUnlock()
 
 	if time > pl.curr.Duration {
-		return errors.New("can't set time larger than current song duration")
+		return ErrLargerTime
 	}
 
 	pl.time = time
@@ -375,7 +424,7 @@ func (pl *Playlist) GetSong(id uint) (*Song, error) {
 
 	song := pl.findSong(id)
 	if song == nil {
-		return nil, errors.New("song is not in playlist")
+		return nil, ErrSongNotIn
 	}
 
 	return song, nil

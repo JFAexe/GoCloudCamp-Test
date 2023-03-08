@@ -15,6 +15,12 @@ import (
 	"github.com/go-chi/render"
 )
 
+var (
+	ErrParseId         = errors.New("can't parse id")
+	ErrRequestBody     = errors.New("there is an error in the request body")
+	ErrNoSongsProvided = errors.New("no songs provided")
+)
+
 func Get(ctx context.Context, s *service.Service) http.Handler {
 	router := chi.NewRouter()
 
@@ -32,6 +38,11 @@ func Get(ctx context.Context, s *service.Service) http.Handler {
 			pl.Get("/", getAll(s))
 			pl.Get("/{id}", getPlaylist(s))
 
+			pl.Post("/", newPlaylist(s))
+			pl.Patch("/{id}/name", namePlaylist(s))
+			pl.Patch("/{id}/time", timePlaylist(s))
+			pl.Delete("/{id}", deletePlaylist(s))
+
 			pl.Post("/{id}/launch", launchPlaylist(ctx, s))
 			pl.Post("/{id}/stop", stopPlaylist(s))
 
@@ -43,11 +54,6 @@ func Get(ctx context.Context, s *service.Service) http.Handler {
 			pl.Post("/{id}/song", addSong(s))
 			pl.Patch("/{id}/song/{sid}", editSong(s))
 			pl.Delete("/{id}/song/{sid}", removeSong(s))
-
-			pl.Post("/", newPlaylist(s))
-			pl.Patch("/{id}/name", namePlaylist(s))
-			pl.Patch("/{id}/time", timePlaylist(s))
-			pl.Delete("/{id}", deletePlaylist(s))
 		})
 	})
 
@@ -78,7 +84,7 @@ func ping(w http.ResponseWriter, r *http.Request) {
 func parseId(r *http.Request, s string) (uint, error) {
 	id, err := strconv.ParseUint(chi.URLParam(r, s), 10, 32)
 	if err != nil {
-		return 0, errors.New("can't parse id")
+		return 0, ErrParseId
 	}
 
 	return uint(id), nil
@@ -140,7 +146,7 @@ func newPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 
 		err := dec.Decode(&data)
 		if err != nil {
-			render.Render(w, r, ErrInvalidRequest(err))
+			render.Render(w, r, ErrInvalidRequest(ErrRequestBody))
 
 			return
 		}
@@ -219,13 +225,13 @@ func addSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 
 		err := dec.Decode(&data)
 		if err != nil {
-			render.Render(w, r, ErrInvalidRequest(err))
+			render.Render(w, r, ErrInvalidRequest(ErrRequestBody))
 
 			return
 		}
 
 		if len(data) < 1 {
-			render.Render(w, r, ErrInvalidRequest(errors.New("no songs provided")))
+			render.Render(w, r, ErrInvalidRequest(ErrNoSongsProvided))
 
 			return
 		}
@@ -273,7 +279,7 @@ func editSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 
 		err := dec.Decode(&data)
 		if err != nil {
-			render.Render(w, r, ErrInvalidRequest(err))
+			render.Render(w, r, ErrInvalidRequest(ErrRequestBody))
 
 			return
 		}
@@ -356,12 +362,6 @@ func playPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		if !pl.Status().Processing {
-			render.Render(w, r, ErrInternalError(errors.New("playlist is not being processed")))
-
-			return
-		}
-
 		if err = pl.Play(); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
@@ -390,12 +390,6 @@ func pausePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) 
 		pl, err := s.GetPlaylist(id)
 		if err != nil {
 			render.Render(w, r, ErrInternalError(err))
-
-			return
-		}
-
-		if !pl.Status().Processing {
-			render.Render(w, r, ErrInternalError(errors.New("playlist is not being processed")))
 
 			return
 		}
@@ -432,12 +426,6 @@ func nextPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		if !pl.Status().Processing {
-			render.Render(w, r, ErrInternalError(errors.New("playlist is not being processed")))
-
-			return
-		}
-
 		if err = pl.Next(); err != nil {
 			render.Render(w, r, ErrInternalError(err))
 
@@ -466,12 +454,6 @@ func prevPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		pl, err := s.GetPlaylist(id)
 		if err != nil {
 			render.Render(w, r, ErrInternalError(err))
-
-			return
-		}
-
-		if !pl.Status().Processing {
-			render.Render(w, r, ErrInternalError(errors.New("playlist is not being processed")))
 
 			return
 		}
@@ -565,7 +547,7 @@ func namePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 
 		err := dec.Decode(&data)
 		if err != nil {
-			render.Render(w, r, ErrInvalidRequest(err))
+			render.Render(w, r, ErrInvalidRequest(ErrRequestBody))
 
 			return
 		}
@@ -609,7 +591,7 @@ func timePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 
 		err := dec.Decode(&data)
 		if err != nil {
-			render.Render(w, r, ErrInvalidRequest(err))
+			render.Render(w, r, ErrInvalidRequest(ErrRequestBody))
 
 			return
 		}

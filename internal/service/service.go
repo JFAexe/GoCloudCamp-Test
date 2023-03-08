@@ -10,6 +10,11 @@ import (
 	"gocloudcamp_test/internal/playlist"
 )
 
+var (
+	ErrNoPlaylistWithId = errors.New("there is no playlist with such id")
+	ErrAlreadyExists    = errors.New("playlist with this id already exists")
+)
+
 type Service struct {
 	activeWg      sync.WaitGroup
 	DB            *database.Database
@@ -94,7 +99,7 @@ func (s *Service) GetPlaylist(id uint) (*playlist.Playlist, error) {
 		return pl, nil
 	}
 
-	return nil, errors.New("there is no playlist with such id")
+	return nil, ErrNoPlaylistWithId
 }
 
 func (s *Service) LaunchPlaylist(ctx context.Context, id uint) error {
@@ -103,8 +108,8 @@ func (s *Service) LaunchPlaylist(ctx context.Context, id uint) error {
 		return err
 	}
 
-	if pl.Status().Processing {
-		return errors.New("can't launch already processing playlist")
+	if pl.IsProcessing() {
+		return playlist.ErrAlreadyProcessing
 	}
 
 	s.activeWg.Add(1)
@@ -126,7 +131,7 @@ func (s *Service) CreatePlaylist(dbpl *database.Playlist) error {
 
 func (s *Service) AddPlaylist(id uint, name string) error {
 	if _, ok := s.Playlists[id]; ok {
-		return errors.New("can't add playlist with existing id")
+		return ErrAlreadyExists
 	}
 
 	pl := playlist.New(id, name)
@@ -157,14 +162,14 @@ func (s *Service) DeletePlaylist(id uint) error {
 		return err
 	}
 
-	if err := s.DB.DeletePlaylist(id); err != nil {
-		return err
-	}
-
-	if pl.Status().Processing {
+	if pl.IsProcessing() {
 		if err := pl.Stop(); err != nil {
 			return err
 		}
+	}
+
+	if err := s.DB.DeletePlaylist(id); err != nil {
+		return err
 	}
 
 	for _, song := range pl.GetSongsList() {
@@ -201,8 +206,8 @@ func (s *Service) EditSong(id uint, sid uint, data *database.Song) error {
 		return err
 	}
 
-	if pl.Status().CurrentId == sid {
-		return errors.New("can't edit playing song")
+	if pl.IsCurrent(sid) {
+		return playlist.ErrEditCurrent
 	}
 
 	sn, err := pl.GetSong(sid)
