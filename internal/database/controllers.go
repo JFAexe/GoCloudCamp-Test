@@ -9,7 +9,7 @@ func (db *Database) LoadPlaylists() ([]Playlist, error) {
 
 	var pls []Playlist
 
-	err := db.Find(&pls).Error
+	err := db.Order("id asc").Find(&pls).Error
 
 	return pls, err
 }
@@ -22,7 +22,13 @@ func (db *Database) CreatePlaylist(pl *Playlist) error {
 	return err
 }
 
-func (db *Database) UpdatePlaylist(pl *Playlist) error {
+func (db *Database) UpdatePlaylist(id uint, name string) error {
+	pl := Playlist{Id: id}
+
+	db.First(&pl)
+
+	pl.Name = name
+
 	log.Printf("database | update playlist | id %d", pl.Id)
 
 	return db.Save(&pl).Error
@@ -39,7 +45,7 @@ func (db *Database) LoadSongs() ([]Song, error) {
 
 	var sns []Song
 
-	err := db.Find(&sns).Error
+	err := db.Order("song_id asc").Find(&sns).Error
 
 	return sns, err
 }
@@ -52,10 +58,17 @@ func (db *Database) CreateSong(sn *Song) error {
 	return err
 }
 
-func (db *Database) UpdateSong(sn *Song) error {
-	log.Printf("database | update song | id %d", sn.SongId)
+func (db *Database) UpdateSong(id uint, name string, duration uint) error {
+	song := Song{SongId: id}
 
-	return db.Save(&sn).Error
+	db.First(&song)
+
+	song.Name = name
+	song.Duration = duration
+
+	log.Printf("database | update song | id %d", song.SongId)
+
+	return db.Save(&song).Error
 }
 
 func (db *Database) DeleteSong(id uint) error {

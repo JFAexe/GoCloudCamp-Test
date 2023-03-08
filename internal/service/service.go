@@ -147,7 +147,7 @@ func (s *Service) EditPlaylist(id uint, name string) error {
 		return err
 	}
 
-	if err := s.DB.UpdatePlaylist(&database.Playlist{Id: id, Name: name}); err != nil {
+	if err := s.DB.UpdatePlaylist(id, name); err != nil {
 		return err
 	}
 
@@ -200,29 +200,39 @@ func (s *Service) AddSong(id uint, song database.Song) error {
 	return pl.AddSong(song.SongId, song.Name, song.Duration)
 }
 
-func (s *Service) EditSong(id uint, sid uint, data *database.Song) error {
+func (s *Service) EditSong(id uint, sid uint, name string, duration uint) error {
 	pl, err := s.GetPlaylist(id)
 	if err != nil {
 		return err
 	}
 
-	if pl.IsCurrent(sid) {
+	if pl.IsCurrent(sid) && pl.IsProcessing() {
 		return playlist.ErrEditCurrent
 	}
 
-	sn, err := pl.GetSong(sid)
+	song, err := pl.GetSong(sid)
 	if err != nil {
 		return err
 	}
 
-	data.SongId = sid
+	if name == "" {
+		name = song.Name
+	}
 
-	if err := s.DB.UpdateSong(data); err != nil {
+	if duration == 0 {
+		duration = song.Duration
+	}
+
+	if err := s.DB.UpdateSong(sid, name, duration); err != nil {
 		return err
 	}
 
-	sn.Name = data.Name
-	sn.Duration = data.Duration
+	song.Name = name
+	song.Duration = duration
+
+	if pl.IsCurrent(sid) {
+		return pl.SetTime(0)
+	}
 
 	return nil
 }

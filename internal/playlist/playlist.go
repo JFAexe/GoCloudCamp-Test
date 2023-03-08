@@ -87,7 +87,7 @@ func (pl *Playlist) IsCurrent(id uint) bool {
 		return false
 	}
 
-	return pl.IsProcessing() && pl.curr.Id == id
+	return pl.curr.Id == id
 }
 
 func (pl *Playlist) Process(ctx context.Context) {

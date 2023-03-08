@@ -292,7 +292,7 @@ func editSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		if err := s.EditSong(id, sid, &data); err != nil {
+		if err := s.EditSong(id, sid, data.Name, data.Duration); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
 			s.ChanError <- err
