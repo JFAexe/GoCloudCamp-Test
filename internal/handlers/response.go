@@ -8,45 +8,55 @@ import (
 	"github.com/go-chi/render"
 )
 
-type ErrResponse struct {
+type errorResponse struct {
 	HTTPStatusCode int    `json:"-"`
-	Err            error  `json:"-"`
-	StatusText     string `json:"status"`
+	MessageText    string `json:"message,omitempty"`
 	ErrorText      string `json:"error,omitempty"`
 }
 
-func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	render.Status(r, e.HTTPStatusCode)
+func (er *errorResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	render.Status(r, er.HTTPStatusCode)
 
 	return nil
 }
 
-func ErrInvalidRequest(err error) render.Renderer {
-	return &ErrResponse{
-		Err:            err,
+var (
+	responseNotFound = &errorResponse{
+		HTTPStatusCode: http.StatusNotFound,
+		MessageText:    "invalid request",
+		ErrorText:      "route does not exist",
+	}
+	responseNotAllowed = &errorResponse{
+		HTTPStatusCode: http.StatusMethodNotAllowed,
+		MessageText:    "invalid request",
+		ErrorText:      "method is not valid",
+	}
+)
+
+func responseInvalidRequest(err error) render.Renderer {
+	return &errorResponse{
 		HTTPStatusCode: http.StatusBadRequest,
-		StatusText:     "invalid request",
+		MessageText:    "invalid request",
 		ErrorText:      err.Error(),
 	}
 }
 
-func ErrInternalError(err error) render.Renderer {
-	return &ErrResponse{
-		Err:            err,
+func responseInternalError(err error) render.Renderer {
+	return &errorResponse{
 		HTTPStatusCode: http.StatusInternalServerError,
-		StatusText:     "something went wrong",
+		MessageText:    "something went wrong",
 		ErrorText:      err.Error(),
 	}
 }
 
-type MsgResponse struct {
+type messageResponse struct {
 	HTTPStatusCode int    `json:"-"`
 	MessageText    string `json:"message,omitempty"`
 	PlaylistId     uint   `json:"id,omitempty"`
 }
 
-func (e *MsgResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	render.Status(r, e.HTTPStatusCode)
+func (mr *messageResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	render.Status(r, mr.HTTPStatusCode)
 
 	return nil
 }
@@ -56,24 +66,24 @@ type playlistData struct {
 	Songs  []playlist.Song `json:"songs,omitempty"`
 }
 
-type PlaylistResponse struct {
+type playlistResponse struct {
 	HTTPStatusCode int          `json:"-"`
 	Playlist       playlistData `json:"playlist,omitempty"`
 }
 
-func (e *PlaylistResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	render.Status(r, e.HTTPStatusCode)
+func (pr *playlistResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	render.Status(r, pr.HTTPStatusCode)
 
 	return nil
 }
 
-type AllResponse struct {
+type allResponse struct {
 	HTTPStatusCode int            `json:"-"`
 	Playlists      []playlistData `json:"playlists,omitempty"`
 }
 
-func (e *AllResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	render.Status(r, e.HTTPStatusCode)
+func (ar *allResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	render.Status(r, ar.HTTPStatusCode)
 
 	return nil
 }
