@@ -24,7 +24,7 @@ var (
 func New(ctx context.Context, s *service.Service) http.Handler {
 	router := chi.NewRouter()
 
-	router.Use(middleware.Logger)
+	router.Use(requestLogger())
 	router.Use(middleware.StripSlashes)
 	router.Use(render.SetContentType(render.ContentTypeJSON))
 
@@ -151,7 +151,7 @@ func newPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err := s.CreatePlaylist(&pl); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -164,7 +164,7 @@ func newPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			if err := s.CreateSong(&sn); err != nil {
 				render.Render(w, r, responseInternalError(err))
 
-				s.ChanError <- err
+				s.ChanErrorLog <- err
 
 				return
 			}
@@ -197,7 +197,7 @@ func deletePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request)
 		if err := s.DeletePlaylist(id); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -250,7 +250,7 @@ func addSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			if err := s.CreateSong(&sn); err != nil {
 				render.Render(w, r, responseInternalError(err))
 
-				s.ChanError <- err
+				s.ChanErrorLog <- err
 
 				return
 			}
@@ -295,7 +295,7 @@ func editSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err := s.EditSong(id, sid, data.Name, data.Duration); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -327,7 +327,7 @@ func removeSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err := s.DeleteSong(id, sid); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -359,7 +359,7 @@ func playPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.Play(); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -391,7 +391,7 @@ func pausePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) 
 		if err = pl.Pause(); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -423,7 +423,7 @@ func nextPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.Next(); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -455,7 +455,7 @@ func prevPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.Prev(); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -487,7 +487,7 @@ func launchPlaylist(ctx context.Context, s *service.Service) func(http.ResponseW
 		if err = s.LaunchPlaylist(ctx, id); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -519,7 +519,7 @@ func stopPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.Stop(); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -563,7 +563,7 @@ func namePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = s.EditPlaylist(id, data.Name); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}
@@ -607,7 +607,7 @@ func timePlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 		if err = pl.SetTime(data.Time); err != nil {
 			render.Render(w, r, responseInternalError(err))
 
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			return
 		}

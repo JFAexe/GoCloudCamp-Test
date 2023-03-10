@@ -31,8 +31,6 @@ func (s *Server) Run() {
 
 		return
 	}
-
-	log.Printf("http | shut down")
 }
 
 func (s *Server) GracefulShutdown(ctx context.Context, forceStop chan<- struct{}) {
@@ -59,4 +57,6 @@ func (s *Server) GracefulShutdown(ctx context.Context, forceStop chan<- struct{}
 	if err := s.Shutdown(shutdownCtx); err != nil {
 		log.Printf("http | %v", err)
 	}
+
+	log.Printf("http | shut down")
 }

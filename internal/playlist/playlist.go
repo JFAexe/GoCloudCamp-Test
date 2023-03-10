@@ -135,7 +135,7 @@ func (pl *Playlist) Process(ctx context.Context) {
 				break
 			}
 
-			log.Printf("playlist | id %d | current %d | time %d", pl.Id, pl.curr.Id, pl.time)
+			log.Printf("playlist | id %d | playing | songid %d | time %d", pl.Id, pl.curr.Id, pl.time)
 
 			pl.time++
 		}
@@ -189,7 +189,7 @@ func (pl *Playlist) switchNext() {
 	pl.time = 0
 
 	if pl.curr != nil {
-		log.Printf("playlist | id %d | next | id %d | duration %d", pl.Id, pl.curr.Id, pl.curr.Duration)
+		log.Printf("playlist | id %d | next | songid %d | duration %d", pl.Id, pl.curr.Id, pl.curr.Duration)
 	}
 }
 
@@ -209,7 +209,7 @@ func (pl *Playlist) Play() error {
 
 	pl.playing = true
 
-	log.Printf("playlist | id %d | play | id %d | time %d", pl.Id, pl.curr.Id, pl.time)
+	log.Printf("playlist | id %d | play | songid %d | time %d", pl.Id, pl.curr.Id, pl.time)
 
 	return nil
 }
@@ -230,7 +230,7 @@ func (pl *Playlist) Pause() error {
 
 	pl.playing = false
 
-	log.Printf("playlist | id %d | pause | id %d | time %d", pl.Id, pl.curr.Id, pl.time)
+	log.Printf("playlist | id %d | pause | songid %d | time %d", pl.Id, pl.curr.Id, pl.time)
 
 	return nil
 }
@@ -269,7 +269,7 @@ func (pl *Playlist) Prev() error {
 	pl.curr = pl.curr.prev
 	pl.time = 0
 
-	log.Printf("playlist | id %d | prev | id %d | duration %d", pl.Id, pl.curr.Id, pl.curr.Duration)
+	log.Printf("playlist | id %d | prev | songid %d | duration %d", pl.Id, pl.curr.Id, pl.curr.Duration)
 
 	pl.chanPrev <- struct{}{}
 
@@ -317,7 +317,7 @@ func (pl *Playlist) AddSong(id uint, name string, duration uint) error {
 
 	pl.tail = song
 
-	log.Printf("playlist | id %d | add song | id %d | duration %d", pl.Id, song.Id, song.Duration)
+	log.Printf("playlist | id %d | add song | songid %d | duration %d", pl.Id, song.Id, song.Duration)
 
 	return nil
 }
@@ -370,7 +370,7 @@ func (pl *Playlist) Remove(id uint) error {
 	song.next = nil
 	song.prev = nil
 
-	log.Printf("playlist | id %d | remove | id %d", pl.Id, song.Id)
+	log.Printf("playlist | id %d | remove | songid %d", pl.Id, song.Id)
 
 	return nil
 }
@@ -385,7 +385,7 @@ func (pl *Playlist) SetTime(time uint) error {
 
 	pl.time = time
 
-	log.Printf("playlist | id %d | set time | id %d | time %d", pl.Id, pl.curr.Id, pl.time)
+	log.Printf("playlist | id %d | set time | time %d", pl.Id, pl.time)
 
 	return nil
 }
@@ -404,7 +404,7 @@ func (pl *Playlist) Status() Status {
 		duration = pl.curr.Duration
 	}
 
-	log.Printf("playlist | id %d | status | processing %t | playing %t | time %d | id %d | duration %d", pl.Id, pl.processing, pl.playing, pl.time, id, duration)
+	log.Printf("playlist | id %d | status | processing %t | playing %t | time %d | songid %d | duration %d", pl.Id, pl.processing, pl.playing, pl.time, id, duration)
 
 	return Status{
 		Id:          pl.Id,

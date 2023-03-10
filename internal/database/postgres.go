@@ -15,7 +15,7 @@ type Database struct {
 func Connect(ctx context.Context, uri string) *Database {
 	log.Printf("database | connecting | %s", uri)
 
-	db, err := gorm.Open(postgres.Open(uri), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(uri))
 	if err != nil {
 		log.Fatalf("database | %v", err)
 	}

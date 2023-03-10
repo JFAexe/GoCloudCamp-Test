@@ -18,22 +18,21 @@ var (
 type Playlists = map[uint]*playlist.Playlist
 
 type Service struct {
-	ChanForceStop chan struct{}
 	db            *database.Database
 	activeWg      sync.WaitGroup
 	playlists     Playlists
-	ChanError     chan error
+	ChanForceStop chan struct{}
+	ChanErrorLog  chan error
 }
 
 func New(db *database.Database) *Service {
 	service := &Service{}
 
 	service.db = db
+	service.playlists = make(Playlists)
 
 	service.ChanForceStop = make(chan struct{}, 1)
-	service.ChanError = make(chan error)
-
-	service.playlists = make(Playlists)
+	service.ChanErrorLog = make(chan error)
 
 	return service
 }
@@ -42,7 +41,7 @@ func (s *Service) Start() {
 	log.Print("service | start")
 
 	go func() {
-		for err := range s.ChanError {
+		for err := range s.ChanErrorLog {
 			if err != nil {
 				log.Printf("service | error | %v", err)
 			}
@@ -51,29 +50,25 @@ func (s *Service) Start() {
 
 	pls, err := s.db.LoadPlaylists()
 	if err != nil {
-		s.ChanError <- err
-
-		return
-	}
-
-	sns, err := s.db.LoadSongs()
-	if err != nil {
-		s.ChanError <- err
-
-		return
+		s.ChanErrorLog <- err
 	}
 
 	for _, pl := range pls {
 		if err := s.AddPlaylist(pl.Id, pl.Name); err != nil {
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			continue
 		}
 	}
 
+	sns, err := s.db.LoadSongs()
+	if err != nil {
+		s.ChanErrorLog <- err
+	}
+
 	for _, sn := range sns {
 		if err := s.AddSong(sn.PlaylistId, sn.SongId, sn.Name, sn.Duration); err != nil {
-			s.ChanError <- err
+			s.ChanErrorLog <- err
 
 			continue
 		}
