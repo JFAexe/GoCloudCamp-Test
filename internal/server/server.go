@@ -27,9 +27,7 @@ func (s *Server) Run() {
 	log.Printf("http | server starting | %s", s.Addr)
 
 	if err := s.ListenAndServe(); err != http.ErrServerClosed {
-		log.Printf("http | %v", err)
-
-		return
+		log.Printf("http | error | %v", err)
 	}
 }
 
@@ -39,7 +37,7 @@ func (s *Server) GracefulShutdown(ctx context.Context, forceStop chan<- struct{}
 
 	<-chanQuit
 
-	log.Print("http | shutting down")
+	log.Print("http | server shutting down")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(ctx, time.Second*5)
 	defer shutdownCancel()
@@ -48,15 +46,15 @@ func (s *Server) GracefulShutdown(ctx context.Context, forceStop chan<- struct{}
 		<-shutdownCtx.Done()
 
 		if shutdownCtx.Err() == context.DeadlineExceeded {
-			log.Print("http | force stop")
+			log.Print("http | server force stop")
 
 			forceStop <- struct{}{}
 		}
 	}()
 
 	if err := s.Shutdown(shutdownCtx); err != nil {
-		log.Printf("http | %v", err)
+		log.Printf("http | error | %v", err)
 	}
 
-	log.Printf("http | shut down")
+	log.Printf("http | server shut down")
 }
