@@ -59,16 +59,16 @@ func (db *Database) CreateSong(sn *Song) error {
 }
 
 func (db *Database) UpdateSong(id uint, name string, duration uint) error {
-	song := Song{SongId: id}
+	sn := Song{SongId: id}
 
-	db.First(&song)
+	db.First(&sn)
 
-	song.Name = name
-	song.Duration = duration
+	sn.Name = name
+	sn.Duration = duration
 
-	log.Printf("database | update song | id %d", song.SongId)
+	log.Printf("database | update song | id %d", sn.SongId)
 
-	return db.Save(&song).Error
+	return db.Save(&sn).Error
 }
 
 func (db *Database) DeleteSong(id uint) error {

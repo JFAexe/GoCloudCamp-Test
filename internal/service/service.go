@@ -15,23 +15,25 @@ var (
 	ErrAlreadyExists    = errors.New("playlist with this id already exists")
 )
 
+type Playlists = map[uint]*playlist.Playlist
+
 type Service struct {
-	activeWg      sync.WaitGroup
-	DB            *database.Database
 	ChanForceStop chan struct{}
+	db            *database.Database
+	activeWg      sync.WaitGroup
+	playlists     Playlists
 	ChanError     chan error
-	Playlists     map[uint]*playlist.Playlist
 }
 
 func New(db *database.Database) *Service {
 	service := &Service{}
 
-	service.DB = db
+	service.db = db
 
 	service.ChanForceStop = make(chan struct{}, 1)
 	service.ChanError = make(chan error)
 
-	service.Playlists = make(map[uint]*playlist.Playlist)
+	service.playlists = make(Playlists)
 
 	return service
 }
@@ -47,21 +49,21 @@ func (s *Service) Start() {
 		}
 	}()
 
-	playlists, err := s.DB.LoadPlaylists()
+	pls, err := s.db.LoadPlaylists()
 	if err != nil {
 		s.ChanError <- err
 
 		return
 	}
 
-	songs, err := s.DB.LoadSongs()
+	sns, err := s.db.LoadSongs()
 	if err != nil {
 		s.ChanError <- err
 
 		return
 	}
 
-	for _, pl := range playlists {
+	for _, pl := range pls {
 		if err := s.AddPlaylist(pl.Id, pl.Name); err != nil {
 			s.ChanError <- err
 
@@ -69,8 +71,8 @@ func (s *Service) Start() {
 		}
 	}
 
-	for _, song := range songs {
-		if err := s.AddSong(song.PlaylistId, song); err != nil {
+	for _, sn := range sns {
+		if err := s.AddSong(sn.PlaylistId, sn.SongId, sn.Name, sn.Duration); err != nil {
 			s.ChanError <- err
 
 			continue
@@ -94,8 +96,12 @@ func (s *Service) Stop(ctx context.Context) {
 	log.Print("service | stop")
 }
 
+func (s *Service) GetPlaylists() Playlists {
+	return s.playlists
+}
+
 func (s *Service) GetPlaylist(id uint) (*playlist.Playlist, error) {
-	if pl, ok := s.Playlists[id]; ok {
+	if pl, ok := s.playlists[id]; ok {
 		return pl, nil
 	}
 
@@ -122,7 +128,7 @@ func (s *Service) LaunchPlaylist(ctx context.Context, id uint) error {
 }
 
 func (s *Service) CreatePlaylist(dbpl *database.Playlist) error {
-	if err := s.DB.CreatePlaylist(dbpl); err != nil {
+	if err := s.db.CreatePlaylist(dbpl); err != nil {
 		return err
 	}
 
@@ -130,13 +136,13 @@ func (s *Service) CreatePlaylist(dbpl *database.Playlist) error {
 }
 
 func (s *Service) AddPlaylist(id uint, name string) error {
-	if _, ok := s.Playlists[id]; ok {
+	if _, ok := s.playlists[id]; ok {
 		return ErrAlreadyExists
 	}
 
 	pl := playlist.New(id, name)
 
-	s.Playlists[id] = pl
+	s.playlists[id] = pl
 
 	return nil
 }
@@ -147,7 +153,7 @@ func (s *Service) EditPlaylist(id uint, name string) error {
 		return err
 	}
 
-	if err := s.DB.UpdatePlaylist(id, name); err != nil {
+	if err := s.db.UpdatePlaylist(id, name); err != nil {
 		return err
 	}
 
@@ -168,36 +174,36 @@ func (s *Service) DeletePlaylist(id uint) error {
 		}
 	}
 
-	if err := s.DB.DeletePlaylist(id); err != nil {
+	if err := s.db.DeletePlaylist(id); err != nil {
 		return err
 	}
 
-	for _, song := range pl.GetSongsList() {
-		if err := s.DB.DeleteSong(song.Id); err != nil {
+	for _, sn := range pl.GetSongsList() {
+		if err := s.db.DeleteSong(sn.Id); err != nil {
 			return err
 		}
 	}
 
-	delete(s.Playlists, id)
+	delete(s.playlists, id)
 
 	return nil
 }
 
 func (s *Service) CreateSong(dbsn *database.Song) error {
-	if err := s.DB.CreateSong(dbsn); err != nil {
+	if err := s.db.CreateSong(dbsn); err != nil {
 		return err
 	}
 
-	return s.AddSong(dbsn.PlaylistId, *dbsn)
+	return s.AddSong(dbsn.PlaylistId, dbsn.SongId, dbsn.Name, dbsn.Duration)
 }
 
-func (s *Service) AddSong(id uint, song database.Song) error {
+func (s *Service) AddSong(id uint, sid uint, name string, duration uint) error {
 	pl, err := s.GetPlaylist(id)
 	if err != nil {
 		return err
 	}
 
-	return pl.AddSong(song.SongId, song.Name, song.Duration)
+	return pl.AddSong(sid, name, duration)
 }
 
 func (s *Service) EditSong(id uint, sid uint, name string, duration uint) error {
@@ -210,25 +216,25 @@ func (s *Service) EditSong(id uint, sid uint, name string, duration uint) error 
 		return playlist.ErrEditCurrent
 	}
 
-	song, err := pl.GetSong(sid)
+	sn, err := pl.GetSong(sid)
 	if err != nil {
 		return err
 	}
 
 	if name == "" {
-		name = song.Name
+		name = sn.Name
 	}
 
 	if duration == 0 {
-		duration = song.Duration
+		duration = sn.Duration
 	}
 
-	if err := s.DB.UpdateSong(sid, name, duration); err != nil {
+	if err := s.db.UpdateSong(sid, name, duration); err != nil {
 		return err
 	}
 
-	song.Name = name
-	song.Duration = duration
+	sn.Name = name
+	sn.Duration = duration
 
 	if pl.IsCurrent(sid) {
 		return pl.SetTime(0)
@@ -243,7 +249,7 @@ func (s *Service) DeleteSong(id uint, sid uint) error {
 		return err
 	}
 
-	if err := s.DB.DeleteSong(sid); err != nil {
+	if err := s.db.DeleteSong(sid); err != nil {
 		return err
 	}
 

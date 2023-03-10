@@ -88,7 +88,7 @@ func getAll(s *service.Service) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var pls []playlistData
 
-		for _, pl := range s.Playlists {
+		for _, pl := range s.GetPlaylists() {
 			pls = append(pls, playlistData{
 				Status: pl.Status(),
 				Songs:  pl.GetSongsList(),
@@ -158,10 +158,10 @@ func newPlaylist(s *service.Service) func(http.ResponseWriter, *http.Request) {
 
 		id := pl.Id
 
-		for _, song := range data.Songs {
-			song.PlaylistId = id
+		for _, sn := range data.Songs {
+			sn.PlaylistId = id
 
-			if err := s.CreateSong(&song); err != nil {
+			if err := s.CreateSong(&sn); err != nil {
 				render.Render(w, r, responseInternalError(err))
 
 				s.ChanError <- err
@@ -244,10 +244,10 @@ func addSong(s *service.Service) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		for _, song := range data {
-			song.PlaylistId = id
+		for _, sn := range data {
+			sn.PlaylistId = id
 
-			if err := s.CreateSong(&song); err != nil {
+			if err := s.CreateSong(&sn); err != nil {
 				render.Render(w, r, responseInternalError(err))
 
 				s.ChanError <- err
